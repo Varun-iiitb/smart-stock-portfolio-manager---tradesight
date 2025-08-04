@@ -1,1 +1,0 @@
-# smart-stock-portfolio-manager---tradesight
