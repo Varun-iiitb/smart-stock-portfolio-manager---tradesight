@@ -1,0 +1,124 @@
+.root {
+    -fx-background-color: #FFFFF0;
+}
+
+/* Table styling */
+.table-view {
+    -fx-background-color: #f0f4f8;
+    -fx-font-size: 14px;
+    -fx-text-fill: #1e1e2f;
+    -fx-border-color: #3498db;
+    -fx-border-style: solid;
+    -fx-border-width: 3px;
+    -fx-border-radius: 8px;
+    -fx-padding: 5px;
+    -fx-background-insets: 0;
+}
+
+/* Table header */
+.table-view .column-header-background {
+    -fx-background-color: #05cff1;
+}
+
+.table-view .column-header {
+    -fx-size: 45px;
+    -fx-background-color: #05cff1;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+}
+
+/* Row height and base color */
+.table-row-cell {
+    -fx-cell-size: 40px;
+    -fx-font-size: 14px;
+    -fx-font-family: "helvetica neue";
+}
+
+/* Alternate row colors */
+.table-row-cell:filled:even {
+    -fx-background-color: #eaf2f8;
+}
+.table-row-cell:filled:odd {
+    -fx-background-color: #d4e6f1;
+}
+
+/* Remove hover effect completely */
+.table-row-cell:hover {
+    -fx-background-color: transparent;
+}
+
+/* Selected row highlight */
+.table-row-cell:filled:selected, .table-row-cell:filled:selected:hover {
+    -fx-background-color: #85C1E9;
+}
+
+/* Force text color inside selected row cells */
+.table-row-cell:filled:selected .table-cell {
+    -fx-text-fill: #000000;
+}
+
+/* Title styling */
+.current-holdings {
+    -fx-font-family: "Times New Roman";
+    -fx-font-size: 24pt;
+    -fx-font-weight: bold;
+
+}
+
+
+.user-btn{
+    -fx-pref-width: 200px;
+    -fx-pref-height: 35px;
+    -fx-font-family: "Times New Roman";
+    -fx-font-size: 15px;
+}
+
+.add-stock{
+    -fx-pref-width: 100px;
+    -fx-pref-height: 35px;
+    -fx-background-color: #28c76f; /* Vibrant green */
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    /* Updated Drop Shadow to match the orange tone */
+    -fx-effect: dropshadow(gaussian, rgba(40, 199, 111, 0.4), 6, 0.2, 0, 3);
+}
+.add-stock:hover{
+    -fx-background-color:#22b25f ;
+    -fx-cursor: hand;
+}
+
+
+
+.sidebar-buttons {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-cursor: hand;
+}
+
+.nav-button-active {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+#sidebar-title {
+    -fx-font-size: 22px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-family: "Arial";
+}

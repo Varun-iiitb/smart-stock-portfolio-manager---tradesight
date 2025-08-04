@@ -1,0 +1,95 @@
+.root{
+    -fx-background-color: #FFFFF0;
+}
+
+.heading{
+    -fx-font-family: "Times New Roman";
+    -fx-font-size: 18px;
+}
+
+.search-button{
+    -fx-pref-width: 155px;
+    -fx-pref-height: 35px;
+    -fx-border-width: 5px;
+    -fx-font-size: 14px;
+}
+
+.buttons{
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 16;
+}
+
+.from{
+    -fx-font-size: 14;
+    -fx-font-family: Arial;
+}
+
+.submit{
+    -fx-pref-width: 100px;
+    -fx-pref-height: 35px;
+    -fx-background-color: linear-gradient(to bottom right, #f39c12, #e67e22);
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+
+    /* Updated Drop Shadow to match the orange tone */
+    -fx-effect: dropshadow(gaussian, rgba(230, 126, 34, 0.4), 6, 0.2, 0, 3);
+}
+.submit:hover{
+    -fx-background-color: #d4880f;
+    -fx-cursor: hand;
+}
+
+.combo-box{
+    -fx-pref-width: 80px;
+    -fx-pref-height: 20px;
+    -fx-background-color: linear-gradient(to bottom, #a8e063, #56ab2f); /* soft lime to leaf green */
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(86, 171, 47, 0.4), 6, 0.2, 0, 3); /* matches bottom green */
+}
+
+
+
+
+.sidebar-buttons {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-cursor: hand;
+}
+
+.nav-button-active {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+#sidebar-title {
+    -fx-font-size: 22px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-family: "Arial";
+}
+
+.title{
+    -fx-font-size: 36px;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+

@@ -1,0 +1,50 @@
+.sign-btn{
+    -fx-pref-width: 280px;
+    -fx-pref-height: 45px;
+    -fx-background-color: linear-gradient(to bottom right, #3498db, #2980b9);
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.2), 5, 0, 0, 2);
+}
+
+.sign-btn:hover,
+.sign-btn-hover {
+    -fx-background-color: linear-gradient(to bottom right, #2980b9, #1abc9c);
+    -fx-effect: dropshadow(gaussian, rgba(52, 152, 219, 0.4), 10, 0, 0, 4);
+    -fx-scale-y: 1.02;
+    -fx-scale-x: 1.02;
+}
+
+.login-btn{
+    -fx-pref-width: 100px;
+    -fx-pref-height: 35px;
+    -fx-background-color: #e67e22;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.username-btn{
+    -fx-pref-width: 280px;
+    -fx-pref-height: 45px;
+    -fx-border-radius: 8px;
+    -fx-font-size: 16px;
+}
+
+.password-btn{
+    fx-pref-width: 260px;
+    -fx-pref-height: 45px;
+    -fx-border-radius: 8px;
+    -fx-font-size: 16px;
+}
+
+.title{
+    -fx-font-weight: bold;
+    -fx-font-size: 20px;
+    -fx-font-family: "Times New Roman";
+}

@@ -1,0 +1,91 @@
+#sidebar-title {
+    -fx-font-size: 22px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-family: "Arial";
+}
+
+.sidebar-buttons {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+    -fx-cursor: hand;
+}
+
+.nav-button-active {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: #34495e;
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+.main-content-heading{
+    -fx-font-size: 30;
+    -fx-font-weight: bold;
+    -fx-font-family: "Arial";
+}
+
+.maincontent-vbox{
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-width: 0 0 0 4;   // Left border width
+    -fx-border-color: #3498db;   // Blue accent
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0.1, 0, 4);
+}
+.vbox-text{
+    -fx-font-size: 25;
+    -fx-font-weight: bold;
+    -fx-font-family: "Arial";
+}
+
+.exchange{
+    -fx-pref-width: 100px;
+    -fx-pref-height: 35px;
+    -fx-background-color: #28c76f; /* Vibrant green */
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-font-size: 14px;
+    -fx-font-family: "Bookman Old Style";
+}
+
+.exchange-input {
+    -fx-pref-width: 100px;
+    -fx-pref-height: 35px;
+    -fx-font-size: 14px;
+
+    /* New additions */
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-padding: 0 10 0 10;
+    -fx-background-color: white;
+    -fx-text-fill: #333333;
+
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1;
+
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 4, 0, 0, 2);
+}
+
+.buttons{
+    -fx-background-color: #1ABC9C;
+    -fx-pref-width: 120px;
+    -fx-pref-height: 35px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.buttons:hover {
+    -fx-background-color: #16A085; /* Slightly darker shade for hover */
+    -fx-cursor: hand; /* Changes cursor to a pointer */
+}
