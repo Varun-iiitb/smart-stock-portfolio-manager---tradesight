@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\varun\OneDrive\Desktop\tradesight_app - Copy\tradesight\tradesight.jar</jar>
+  <outfile>C:\Users\varun\OneDrive\Desktop\tradesight_app - Copy\tradesight\tradesight.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>C:\Users\varun\OneDrive\Desktop\tradesight_app - Copy\tradesight\src\main\resources\tradesight_icon.ico</icon>
+  <classPath>
+    <mainClass>com.example.tradesight.login_page</mainClass>
+  </classPath>
+  <jre>
+    <path>C:\Program Files\Java\jdk-24</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion></minVersion>
+    <maxVersion></maxVersion>
+    <opt>--module-path &quot;C:\Users\varun\Downloads\javafx-sdk-24.0.1\lib&quot; --add-modules javafx.controls</opt>
+  </jre>
+</launch4jConfig>
