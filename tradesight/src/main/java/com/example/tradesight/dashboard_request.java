@@ -27,9 +27,10 @@ public class dashboard_request {
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:5000/export")).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(jsonbody)).build();
             HttpClient httpClient = HttpClient.newHttpClient();
             HttpResponse<byte []> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            Path path = Paths.get(System.getProperty("user.home"), "Desktop", "report.xlsx");
+            Path currentDir = Paths.get("").toAbsolutePath(); // tradesight - copy/tradesight
+            Path parentDir = currentDir.getParent();           // tradesight - copy
+            Path path = parentDir.resolve("report.xlsx");
             Files.write(path, response.body());
-
             // Open the file
             Desktop.getDesktop().open(path.toFile());
         } catch (Exception e) {

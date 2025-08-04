@@ -1,7 +1,6 @@
 import yfinance as yf
 import requests
 import sqlite3
-import matplotlib.pyplot as plt
 from datetime import date
 from flask import Flask, request, jsonify,send_file
 import pandas as pd
@@ -644,7 +643,12 @@ def export():
     plot_profit_loss(username, export_png=True)
     portfolio_value(username, start_date="2024-01-01", end_date=date.today(), export_png=True)
 
-    filepath = "C:/Users/varun/OneDrive/Desktop/report.xlsx"
+    # Get the parent directory of the current script
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+
+    # Set the file path
+    filepath = os.path.join(parent_dir, "report.xlsx")
  
 
     with pd.ExcelWriter(filepath,engine="xlsxwriter") as writer:
@@ -662,8 +666,8 @@ def export():
 
 
         # Insert images (ensure these files were saved earlier)
-        worksheet.insert_image("J2", "C:\\Users\\varun\\OneDrive\\Desktop\\tradesight_app - Copy\\backend\\profit_loss.png")
-        worksheet.insert_image("J30", "C:\\Users\\varun\\OneDrive\\Desktop\\tradesight_app - Copy\\backend\\portfolio_value.png")
+        worksheet.insert_image("J2", "profit_loss.png")
+        worksheet.insert_image("J30", "portfolio_value.png")
 
     return send_file(filepath, as_attachment=True)
 
