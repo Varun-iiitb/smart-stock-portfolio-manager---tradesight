@@ -31,7 +31,7 @@ The app uses a **JavaFX GUI frontend** and a **Python backend** for powerful fin
 |--------------|------------------------------|
 | **Frontend** | Java, JavaFX                 |
 | **Backend**  | Python (Flask)               |
-| **Charts**   | Plotly, Matplotlib           |
+| **Charts**   | Plotly                       |
 | **Prediction**| Prophet, scikit-learn        |
 | **Packaging**| launch4j (JavaFX → .exe)     |
 
