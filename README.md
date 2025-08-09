@@ -18,10 +18,9 @@ The app uses a **JavaFX GUI frontend** and a **Python backend** for powerful fin
 - 🔍 **Searchable stock interface** with autocomplete  
 - 📊 **Real-time chart display** (via Plotly)  
 - 📉 **Technical metric visualizations** (MACD, RSI, EMA)  
-- 🔮 **Price prediction** using Prophet + scikit-learn  
+- 🔮 **Price prediction** using Facebook Prophet model  
 - 🧠 Backend-driven **data analysis**  
 - 📤 **Excel report export** feature  
-- 🖥️ Runs as a standalone JavaFX desktop application  
 
 ---
 
@@ -32,8 +31,7 @@ The app uses a **JavaFX GUI frontend** and a **Python backend** for powerful fin
 | **Frontend** | Java, JavaFX                 |
 | **Backend**  | Python (Flask)               |
 | **Charts**   | Plotly                       |
-| **Prediction**| Prophet, scikit-learn        |
-| **Packaging**| launch4j (JavaFX → .exe)     |
+| **Prediction**| Prophet                     |
 
 ---
 
@@ -44,18 +42,9 @@ The app uses a **JavaFX GUI frontend** and a **Python backend** for powerful fin
 1. Download both the **backend** and **frontend** (TradeSight) folders.  
 2. Place them together inside a single directory.  
 
-**Step 1 — Start the Backend:**
-```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
 
-**Step 2 — Start the Frontend:**
-```bash
-cd tradesight
-java --module-path "path\to\javafx-sdk\lib" --add-modules javafx.controls,javafx.fxml,javafx.graphics -jar tradesight.jar
-```
+**Start the Frontend (JavaFX)**  
+Open the `tradesight` frontend folder in **IntelliJ IDEA**, **Eclipse**, or any Java IDE that supports JavaFX, and run the main application class `Login_Page.java`.
 
 3. Enter a valid stock symbol (e.g., `AAPL`, `TSLA`, `INFY.NS`).  
 4. Click **Submit** to fetch charts and predictions.  
