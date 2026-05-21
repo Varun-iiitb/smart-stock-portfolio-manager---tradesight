@@ -9,12 +9,87 @@ from flask_cors import CORS
 import final_prediction_code
 import os
 
+# Load environment variables from .env if present
+def load_env():
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, val = line.split('=', 1)
+                    os.environ[key.strip()] = val.strip()
+
+load_env()
+
+
 # # import pandas as pd
 # import functools
 # print = functools.partial(print, flush=True)
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
+os.makedirs("static/charts", exist_ok=True)
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
+
+def apply_premium_theme(fig, title, yaxis_title=None, xaxis_title=None, show_legend=True):
+    fig.update_layout(
+        paper_bgcolor='#0a0c10',
+        plot_bgcolor='#0a0c10',
+        title={
+            'text': title,
+            'y': 0.93,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': {'family': 'Outfit, sans-serif', 'size': 18, 'color': '#f3f4f6'}
+        },
+        font=dict(
+            family="Outfit, sans-serif",
+            color="#9ca3af"
+        ),
+        xaxis=dict(
+            title=dict(text=xaxis_title, font=dict(family="Outfit, sans-serif", size=13, color="#9ca3af")) if xaxis_title else None,
+            gridcolor='rgba(255, 255, 255, 0.05)',
+            zerolinecolor='rgba(255, 255, 255, 0.08)',
+            tickfont=dict(family="Inter, sans-serif", size=11, color="#9ca3af"),
+            showgrid=True,
+            showline=True,
+            linecolor='rgba(255, 255, 255, 0.08)'
+        ),
+        yaxis=dict(
+            title=dict(text=yaxis_title, font=dict(family="Outfit, sans-serif", size=13, color="#9ca3af")) if yaxis_title else None,
+            gridcolor='rgba(255, 255, 255, 0.05)',
+            zerolinecolor='rgba(255, 255, 255, 0.08)',
+            tickfont=dict(family="Inter, sans-serif", size=11, color="#9ca3af"),
+            showgrid=True,
+            showline=True,
+            linecolor='rgba(255, 255, 255, 0.08)'
+        ),
+        showlegend=show_legend,
+        legend=dict(
+            font=dict(family="Inter, sans-serif", size=11, color="#9ca3af"),
+            bgcolor='rgba(10, 12, 16, 0.6)',
+            bordercolor='rgba(255, 255, 255, 0.08)',
+            borderwidth=1,
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ) if show_legend else None,
+        margin=dict(t=80, b=40, l=60, r=40),
+        hoverlabel=dict(
+            bgcolor="#111620",
+            bordercolor="#3a86ff",
+            font=dict(family="Inter, sans-serif", size=12, color="#f3f4f6")
+        ),
+        hovermode="x unified"
+    )
+
 
 CORS(app)
 
@@ -66,24 +141,29 @@ def add_stock():
         price_per_share = float(data['price_per_share'])
         date_actual = data.get('date', date.today().strftime("%Y-%m-%d"))
 
-        ticker_symbol = search_ticker(stock_name)
-
-        # Store in DB
-        conn = sqlite3.connect('stock.db')
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO Stocks (Username, StockName, Quantity, Price_per_share, Date, ticker_symbol)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (username, stock_name, quantity, price_per_share, date_actual, ticker_symbol))
-        conn.commit()
-        conn.close()
-
-        # Prepare response
-        temp = [stock_name, quantity, price_per_share, date_actual]
+        # Validate ticker BEFORE writing to DB so invalid stocks don't pollute the portfolio
+        ticker_symbol = search_ticker_strict(stock_name)
+        if not ticker_symbol:
+            return jsonify({"error": f"'{stock_name}' is not a recognized stock. Please check the name or symbol."}), 400
 
         live_price = get_live_price(ticker_symbol)
         if live_price is None:
-            return jsonify({"error": "Live price not available"}), 500
+            return jsonify({"error": f"Could not fetch live price for '{stock_name}'. Ticker may be invalid or markets unreachable."}), 400
+
+        # Store in DB only after validation passes
+        conn = sqlite3.connect('stock.db')
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO Stocks (Username, StockName, Quantity, Price_per_share, Date, ticker_symbol)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, stock_name, quantity, price_per_share, date_actual, ticker_symbol))
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Prepare response
+        temp = [stock_name, quantity, price_per_share, date_actual]
         temp.append(live_price)
         temp.append((live_price - price_per_share) * quantity)
 
@@ -118,11 +198,12 @@ def register():
         email = data['email']
 
         conn = sqlite3.connect("users.db")
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO Users(Username, Password, Email) VALUES (?,?,?)",(username,password,email))
-
-        conn.commit()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO Users(Username, Password, Email) VALUES (?,?,?)",(username,password,email))
+            conn.commit()
+        finally:
+            conn.close()
 
         return "registration successful", 201
 
@@ -141,11 +222,12 @@ def login():
         password = data['password']
 
         conn = sqlite3.connect("users.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Users WHERE Username=? AND Password=?", (username, password))
-        user = cursor.fetchone()
-
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM Users WHERE Username=? AND Password=?", (username, password))
+            user = cursor.fetchone()
+        finally:
+            conn.close()
 
         if user:
             return jsonify({"status": "Login successful"}), 200
@@ -155,35 +237,137 @@ def login():
     except Exception as e:
         return jsonify({"status": "An error occurred"}), 500
 
-def search_ticker(company_name):
-    API_KEY = "cImJHzsIgHTcT9OrLdHazXt1u9tvPdJa"
-    url = "https://financialmodelingprep.com/api/v3/search"
-    params = {
-        "query": company_name,
-        "limit": 10,
-        "apikey": API_KEY
+def search_ticker_suggestions(query, limit=8):
+    """Return a list of {symbol, name, exchange} suggestions from Yahoo Finance for autocomplete."""
+    if not query:
+        return []
+    query = query.strip()
+    url = "https://query2.finance.yahoo.com/v1/finance/search"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36'
     }
-    response = requests.get(url, params=params)
-    
+    params = {'q': query, 'quotesCount': limit, 'newsCount': 0}
     try:
-        data = response.json()
+        response = requests.get(url, headers=headers, params=params, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            for q in data.get("quotes", []):
+                symbol = q.get("symbol")
+                if not symbol:
+                    continue
+                results.append({
+                    "symbol": symbol,
+                    "name": q.get("shortname") or q.get("longname") or symbol,
+                    "exchange": q.get("exchDisp") or q.get("exchange") or "",
+                    "type": q.get("quoteType") or ""
+                })
+            return results
     except Exception as e:
-        print("Failed to parse JSON:", e)
-        return None
+        print("Suggestion search failed:", e)
+    return []
 
-    if not data:
-        print("No results found for", company_name)
+
+def search_ticker_strict(company_name):
+    """Like search_ticker but returns None when no real Yahoo Finance match is found,
+    instead of falling back to upper-casing the raw input."""
+    if not company_name:
+        return None
+    suggestions = search_ticker_suggestions(company_name, limit=1)
+    if suggestions:
+        return suggestions[0]["symbol"]
+    return None
+
+
+def search_ticker(company_name):
+    if not company_name:
         return None
     
-    return data[0].get("symbol")  # return the top match
+    company_name = company_name.strip()
+    
+    # 1. Primary lookup using Yahoo Finance's keyless search API
+    url = "https://query2.finance.yahoo.com/v1/finance/search"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Safari/537.36'
+    }
+    params = {'q': company_name, 'quotesCount': 5, 'newsCount': 0}
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            quotes = data.get("quotes", [])
+            if quotes:
+                symbol = quotes[0].get("symbol")
+                if symbol:
+                    return symbol
+    except Exception as e:
+        print("Yahoo Finance search failed:", e)
+
+    # 2. Secondary fallback to FMP (if customized API Key is provided)
+    API_KEY = os.environ.get("FMP_API_KEY", "cImJHzsIgHTcT9OrLdHazXt1u9tvPdJa")
+    if API_KEY and API_KEY != "cImJHzsIgHTcT9OrLdHazXt1u9tvPdJa":
+        fmp_url = "https://financialmodelingprep.com/api/v3/search"
+        fmp_params = {
+            "query": company_name,
+            "limit": 5,
+            "apikey": API_KEY
+        }
+        try:
+            fmp_response = requests.get(fmp_url, params=fmp_params, timeout=5)
+            if fmp_response.status_code == 200:
+                fmp_data = fmp_response.json()
+                if fmp_data and isinstance(fmp_data, list) and len(fmp_data) > 0:
+                    symbol = fmp_data[0].get("symbol")
+                    if symbol:
+                        return symbol
+        except Exception as e:
+            print("FMP search failed:", e)
+
+    # 3. Final fallback: treat company_name directly as the ticker symbol
+    return company_name.upper()
 
 def get_live_price(ticker_symbol):
-    ticker = yf.Ticker(ticker_symbol)
-    data = ticker.history(period="1d", interval="1m")
-    if not data.empty:
-        latest_price = data["Close"].iloc[-1]
-        return latest_price
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        # Try live 1m data first
+        data = ticker.history(period="1d", interval="1m")
+        if not data.empty:
+            return float(data["Close"].iloc[-1])
+        
+        # Fallback to recent daily closes (handles weekends/market-close)
+        data = ticker.history(period="5d", interval="1d")
+        if not data.empty:
+            return float(data["Close"].iloc[-1])
+        
+        # Final fallback to info fields
+        info = ticker.info
+        if info:
+            val = info.get("currentPrice") or info.get("regularMarketPreviousClose") or info.get("previousClose")
+            if val is not None:
+                return float(val)
+    except Exception as e:
+        print(f"Error getting live price for {ticker_symbol}: {e}")
     return None
+
+def get_column_data(df, col_name, ticker):
+    if df.empty:
+        return []
+    if isinstance(df.columns, pd.MultiIndex):
+        if (col_name, ticker) in df.columns:
+            return df[(col_name, ticker)].tolist()
+        for c in df.columns:
+            if c[0] == col_name and c[1].upper() == ticker.upper():
+                return df[c].tolist()
+        # Fallback to first ticker in multi-index levels
+        if len(df.columns.levels) > 1:
+            level_tickers = df.columns.levels[1]
+            if len(level_tickers) > 0:
+                return df[(col_name, level_tickers[0])].tolist()
+    else:
+        if col_name in df.columns:
+            return df[col_name].tolist()
+    return []
+
 
 # plotting our data
 @app.route('/plot_live_price', methods=['POST'])
@@ -211,44 +395,48 @@ def plot_live_price():
 
         fig = go.Figure()
         
+        close_prices = get_column_data(data_stock, 'Close', ticker_symbols)
+        volume_data = get_column_data(data_stock, 'Volume', ticker_symbols)
 
+        # Area chart style for closing price
         fig.add_trace(go.Scatter(
             x=data_stock.index,
-            y=data_stock['Close'][ticker_symbols].tolist(),
+            y=close_prices,
             mode='lines',
-            name=ticker_symbols + " Closing Price",
-            line=dict(width=2, color="royalblue"),
+            name="Closing Price",
+            line=dict(width=3, color="#3a86ff", shape='spline', smoothing=1.3),
+            fill='tozeroy',
+            fillcolor='rgba(58, 134, 255, 0.12)',
             yaxis='y1'
         ))
 
+        # Stylized volume bars
         fig.add_trace(go.Bar(
             x=data_stock.index,
-            y=data_stock['Volume'][ticker_symbols].tolist(),
+            y=volume_data,
             name="Volume",
-            marker_color='mediumseagreen',
-            yaxis='y2',
-            opacity=0.4
+            marker=dict(
+                color='rgba(6, 214, 160, 0.2)',
+                line=dict(color='#06d6a0', width=1)
+            ),
+            yaxis='y2'
         ))
 
+        apply_premium_theme(fig, f'{ticker_symbols} - Price and Volume History', yaxis_title="Price", xaxis_title="Date")
+        
         fig.update_layout(
-            title=f'{ticker_symbols} - Price and Volume Chart',
-            xaxis=dict(title='Date'),
-            yaxis=dict(
-                title='Closing Price (INR)',
-                side='left'
-            ),
+            yaxis=dict(side='left'),
             yaxis2=dict(
-                title='Volume',
+                title=dict(text="Volume", font=dict(color="#9ca3af")),
+                tickfont=dict(color="#9ca3af"),
                 overlaying='y',
                 side='right',
-                showgrid=False
-            ),
-            legend=dict(x=0.01, y=0.99),
-            template='plotly_white',
-            autosize=True
+                showgrid=False,
+                zeroline=False
+            )
         )
 
-        fig.write_html("live_stock_prices.html")
+        fig.write_html("static/charts/live_stock_prices.html")
         return '', 204  # No Content
 
     except Exception as e:
@@ -260,9 +448,13 @@ def plot_live_price():
 def plot_profit_loss(username,export_png = False):
     print("plot_profit_loss",flush=True)
     conn = sqlite3.connect("stock.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
-    stocks = cursor.fetchall()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
+        stocks = cursor.fetchall()
+    finally:
+        conn.close()
+
     stock_dict = {}
     for stock in stocks:
         stock_name = stock[2]
@@ -273,36 +465,47 @@ def plot_profit_loss(username,export_png = False):
                 stock_dict[stock_name] = 0
             stock_dict[stock_name] += (live_price - stock[4]) * stock[3]
 
-    conn.close()
-
-    fig = go.Figure(data=[go.Bar(
-        x=list(stock_dict.keys()),
-        y=list(stock_dict.values()),
-        marker_color='indianred'
-    )])
+    if not stock_dict:
+        fig = go.Figure()
+        apply_premium_theme(fig, "Profit / Loss Distribution", show_legend=False)
+    else:
+        colors = ['#06d6a0' if val >= 0 else '#ff006e' for val in stock_dict.values()]
+        border_colors = ['#04a178' if val >= 0 else '#b3004d' for val in stock_dict.values()]
+        
+        fig = go.Figure(data=[go.Bar(
+            x=list(stock_dict.keys()),
+            y=list(stock_dict.values()),
+            marker=dict(
+                color=colors,
+                line=dict(color=border_colors, width=1.5)
+            )
+        )])
+        
+        apply_premium_theme(fig, "Profit / Loss Distribution", yaxis_title="Gain/Loss (INR)", show_legend=False)
+        
     fig.update_layout(
-        title="Profit/Loss for Stocks Owned by " + username,
-        yaxis_title="Profit/Loss (INR)",
-        template="plotly_white",
         width=700,
         height=400
     )
 
-    fig.write_html("profit_loss.html")
+    fig.write_html("static/charts/profit_loss.html")
 
     if (export_png):
-        fig.write_image("profit_loss.png")
+        fig.update_layout(paper_bgcolor='#0a0c10', plot_bgcolor='#0a0c10')
+        fig.write_image("static/charts/profit_loss.png")
 
 def portfolio_value(username,start_date=None, end_date=None,export_png = False):
     print("portfolio_value",flush=True)
     conn = sqlite3.connect("stock.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
-    stocks = cursor.fetchall()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
+        stocks = cursor.fetchall()
+    finally:
+        conn.close()
 
     ticker_symbols = {}
     unique_stocks = {}
-
 
     for stock in stocks:
         if stock[2] not in unique_stocks:
@@ -311,40 +514,67 @@ def portfolio_value(username,start_date=None, end_date=None,export_png = False):
         if stock[6] not in ticker_symbols:
             ticker_symbols[stock[2]] = stock[6]
 
+    tickers = list(ticker_symbols.values())
+    if not tickers:
+        fig = go.Figure()
+        apply_premium_theme(fig, "Portfolio Net Value Trend", show_legend=False)
+        fig.update_layout(width=700, height=400)
+        fig.write_html("static/charts/portfolio_value.html")
+        return
 
-    data = yf.download(list(ticker_symbols.values()), start = start_date,end = end_date )['Close']
+    data = yf.download(tickers, start=start_date, end=end_date)
+    if data.empty:
+        fig = go.Figure()
+        apply_premium_theme(fig, "Portfolio Net Value Trend", show_legend=False)
+        fig.update_layout(width=700, height=400)
+        fig.write_html("static/charts/portfolio_value.html")
+        return
 
+    close_data = data['Close']
     total_value = {}
-    for date,row in data.iterrows():
-        for stock in unique_stocks:
-            ticker_symbol = ticker_symbols[stock]
-            if ticker_symbol is not None and ticker_symbol in row:
-                if date not in total_value:
-                    total_value[date] = 0
-                total_value[date] += row[ticker_symbol] * unique_stocks[stock]
 
-    
+    for date, row in close_data.iterrows():
+        for stock, qty in unique_stocks.items():
+            ticker_symbol = ticker_symbols[stock]
+            if ticker_symbol is not None:
+                val = None
+                if isinstance(close_data, pd.Series):
+                    val = row
+                elif ticker_symbol in row:
+                    val = row[ticker_symbol]
+                else:
+                    for idx in row.index:
+                        if str(idx).upper() == ticker_symbol.upper():
+                            val = row[idx]
+                            break
+                if val is not None and not pd.isna(val):
+                    if date not in total_value:
+                        total_value[date] = 0
+                    total_value[date] += float(val) * qty
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=list(total_value.keys()),
-        y=list(total_value.values()),
-        mode='lines+markers',
-        name='Portfolio Value'
-    ))
+    if total_value:
+        fig.add_trace(go.Scatter(
+            x=list(total_value.keys()),
+            y=list(total_value.values()),
+            mode='lines+markers',
+            name='Portfolio Value',
+            line=dict(width=3, color='#8338ec', shape='spline', smoothing=1.3),
+            marker=dict(size=6, color='#8338ec', line=dict(color='#ffffff', width=1)),
+            fill='tozeroy',
+            fillcolor='rgba(131, 56, 236, 0.12)'
+        ))
+    
+    apply_premium_theme(fig, "Portfolio Net Value Trend", yaxis_title="Total Value (INR)", xaxis_title="Date", show_legend=False)
     fig.update_layout(
-        title="Portfolio Value Over Time for " + username,
-        xaxis_title="Date",
-        yaxis_title="Portfolio Value (INR)",
-        template="plotly_white",
         width=700,
         height=400
     )
-    fig.write_html("portfolio_value.html")
+    
+    fig.write_html("static/charts/portfolio_value.html")
     if export_png:
-        fig.write_image("portfolio_value.png")
-
-
-    conn.close()
+        fig.update_layout(paper_bgcolor='#0a0c10', plot_bgcolor='#0a0c10')
+        fig.write_image("static/charts/portfolio_value.png")
 
 @app.route('/portfolio_value_today', methods=['POST'])
 def portfolio_value_today():
@@ -354,9 +584,12 @@ def portfolio_value_today():
         username = data['username']
 
         conn = sqlite3.connect("stock.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
-        stocks = cursor.fetchall()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
+            stocks = cursor.fetchall()
+        finally:
+            conn.close()
 
         unique_stocks = {}
         ticker_symbols = {}
@@ -372,9 +605,9 @@ def portfolio_value_today():
         for stock in unique_stocks:
             ticker_symbol = ticker_symbols[stock]
             if ticker_symbol is not None:
-                total_value += get_live_price(ticker_symbol) * unique_stocks[stock]
-        
-        
+                live_price = get_live_price(ticker_symbol)
+                if live_price is not None:
+                    total_value += live_price * unique_stocks[stock]
         
         return str(f"{total_value:.2f}"),200
     
@@ -389,9 +622,12 @@ def profit_loss_value():
         username = data['username']
 
         conn = sqlite3.connect("stock.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
-        stocks = cursor.fetchall()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM Stocks WHERE username=?", (username,))
+            stocks = cursor.fetchall()
+        finally:
+            conn.close()
 
         total = 0
         for stock in stocks:
@@ -411,9 +647,12 @@ def investment_value():
         data = request.get_json()
         username = data['username']
         conn = sqlite3.connect("stock.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
-        stocks = cursor.fetchall()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
+            stocks = cursor.fetchall()
+        finally:
+            conn.close()
 
         total_investment = 0
         for stock in stocks:
@@ -427,7 +666,7 @@ def investment_value():
 def exchange_rate():
     print("exchange_rate")
     try:
-        API_KEY = "7eacc4a1b04c26d0169384a9"
+        API_KEY = os.environ.get("EXCHANGE_RATE_API_KEY", "7eacc4a1b04c26d0169384a9")
         url = f"https://v6.exchangerate-api.com/v6/{API_KEY}/codes"
         response = requests.get(url)
         data = response.json()
@@ -450,7 +689,7 @@ def exchange_rate_value():
         base_currency = data['base_currency']
         target_currency = data['target_currency']
 
-        API_KEY = "7eacc4a1b04c26d0169384a9"
+        API_KEY = os.environ.get("EXCHANGE_RATE_API_KEY", "7eacc4a1b04c26d0169384a9")
         url = f"https://v6.exchangerate-api.com/v6/{API_KEY}/pair/{base_currency}/{target_currency}"
         response = requests.get(url)
         result = response.json()
@@ -467,9 +706,13 @@ def get_stock_data():
         data = request.get_json()
         username = data['username']
         conn = sqlite3.connect("stock.db")
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
-        stocks = cursor.fetchall()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
+            stocks = cursor.fetchall()
+        finally:
+            conn.close()
+
         final_stocks = []
         for stock in stocks:
             temp =[]
@@ -483,7 +726,7 @@ def get_stock_data():
                 if live_price is not None:
                     temp.append(live_price)
                     temp.append((live_price - stock[4]) * stock[3])
-            
+
             ticker = yf.Ticker(ticker_symbol)
             data = ticker.history(period="2d", interval="1m")
             if not data.empty:
@@ -495,11 +738,54 @@ def get_stock_data():
                 temp.append(percantage_change)
             else:
                 temp.append("0.00%")
+            # Append StockID last so the frontend can use it for delete actions
+            temp.append(stock[0])
             final_stocks.append(temp)
 
         return jsonify(final_stocks), 200
     except Exception as e:
-        return None
+        print("Error in get_stock_data:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/delete_stock', methods=['POST'])
+def delete_stock():
+    print("delete_stock")
+    try:
+        data = request.get_json()
+        username = data['username']
+        stock_id = int(data['stock_id'])
+
+        conn = sqlite3.connect('stock.db')
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM Stocks WHERE StockID=? AND Username=?", (stock_id, username))
+            conn.commit()
+            deleted = cursor.rowcount
+        finally:
+            conn.close()
+
+        if deleted == 0:
+            return jsonify({"error": "Position not found"}), 404
+        return jsonify({"status": "deleted"}), 200
+    except Exception as e:
+        print("Error in delete_stock:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/search_tickers', methods=['POST'])
+def search_tickers():
+    """Autocomplete endpoint - returns up to 8 ticker suggestions for the given query."""
+    try:
+        data = request.get_json() or {}
+        query = (data.get('query') or '').strip()
+        if len(query) < 1:
+            return jsonify([]), 200
+        results = search_ticker_suggestions(query, limit=8)
+        return jsonify(results), 200
+    except Exception as e:
+        print("Error in search_tickers:", e)
+        return jsonify([]), 200
 
 @app.route('/detailed_stock_data', methods=['POST'])
 def detailed_stock_data():
@@ -507,33 +793,56 @@ def detailed_stock_data():
     try:
         data = request.get_json()
         stock_name = data['stock_name']
-        ticker_symbol = search_ticker(stock_name) 
+        ticker_symbol = search_ticker(stock_name)
+        if not ticker_symbol:
+            return jsonify({"error": "Ticker symbol resolution failed"}), 404
+            
         ticker = yf.Ticker(ticker_symbol)
-        info = ticker.info
-        if info:
-            stock_data = {
-                "symbol": info.get("symbol"),
-                "exchange": info.get("exchange"),
-                "name": info.get("longName"),
-                "industry": info.get("industry"),
-                "currentPrice": f"{info.get('currentPrice'):.2f}",
-                "previousClose": info.get("regularMarketPreviousClose"),
-                "open": info.get("regularMarketOpen"),
-                "high": info.get("regularMarketDayHigh"),
-                "low": info.get("regularMarketDayLow"),
-                "Pe_ratio": info.get("trailingPE"),
-                "EPS": info.get("trailingEps"),
-                "52_week_high": info.get("fiftyTwoWeekHigh"),
-                "52_week_low": info.get("fiftyTwoWeekLow"),
-                "bookValue": info.get("bookValue"),
-                "200avg":info.get("twoHundredDayAverage")
-            }
-            return jsonify(stock_data), 200
-        
-        else:
-            return jsonify({"error": "No data found for the stock"}), 404
+        info = {}
+        try:
+            info = ticker.info
+        except Exception as info_err:
+            print(f"Failed to fetch ticker.info for {ticker_symbol}: {info_err}")
+            
+        if not info:
+            info = {}
+
+        current_price = info.get("currentPrice")
+        if current_price is None:
+            try:
+                hist = ticker.history(period="2d")
+                if not hist.empty:
+                    current_price = hist["Close"].iloc[-1]
+            except Exception as hist_err:
+                print("Failed to fetch history fallback for price:", hist_err)
+                
+        if current_price is None:
+            current_price = info.get("regularMarketPreviousClose") or info.get("previousClose") or 0.0
+
+        current_price_str = f"{float(current_price):.2f}"
+
+        stock_data = {
+            "symbol": info.get("symbol") or ticker_symbol,
+            "exchange": info.get("exchange") or "N/A",
+            "name": info.get("longName") or info.get("shortName") or stock_name,
+            "industry": info.get("industry") or "General Equity",
+            "currentPrice": current_price_str,
+            "previousClose": info.get("regularMarketPreviousClose") or info.get("previousClose") or float(current_price),
+            "open": info.get("regularMarketOpen") or info.get("open") or float(current_price),
+            "high": info.get("regularMarketDayHigh") or info.get("dayHigh") or float(current_price),
+            "low": info.get("regularMarketDayLow") or info.get("dayLow") or float(current_price),
+            "Pe_ratio": info.get("trailingPE") or info.get("forwardPE"),
+            "EPS": info.get("trailingEps") or info.get("forwardEps"),
+            "52_week_high": info.get("fiftyTwoWeekHigh") or float(current_price),
+            "52_week_low": info.get("fiftyTwoWeekLow") or float(current_price),
+            "bookValue": info.get("bookValue"),
+            "200avg": info.get("twoHundredDayAverage") or info.get("fiftyDayAverage")
+        }
+        return jsonify(stock_data), 200
     
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/plot_all_graphs', methods=['POST'])
@@ -574,20 +883,31 @@ def plot_all_graphs():
 def candle_stick_graph(stock_name,ticker_symbol, start_date, end_date):
     print("candle_stick_graph",flush=True)
     data = yf.download(ticker_symbol, start=start_date, end=end_date)
-    fig = go.Figure(data=[go.Candlestick(x=data.index,
-                                         open=data['Open'][ticker_symbol].tolist(),
-                                         high=data['High'][ticker_symbol].tolist(),
-                                         low=data['Low'][ticker_symbol].tolist(),
-                                         close=data['Close'][ticker_symbol].tolist())])
+    
+    open_vals = get_column_data(data, 'Open', ticker_symbol)
+    high_vals = get_column_data(data, 'High', ticker_symbol)
+    low_vals = get_column_data(data, 'Low', ticker_symbol)
+    close_vals = get_column_data(data, 'Close', ticker_symbol)
+
+    fig = go.Figure(data=[go.Candlestick(
+        x=data.index,
+        open=open_vals,
+        high=high_vals,
+        low=low_vals,
+        close=close_vals,
+        increasing_line_color='#06d6a0',
+        decreasing_line_color='#ff006e',
+        increasing_fillcolor='rgba(6, 214, 160, 0.2)',
+        decreasing_fillcolor='rgba(255, 0, 110, 0.2)'
+    )])
+    
+    apply_premium_theme(fig, f"Candlestick Chart - {stock_name}", yaxis_title="Price", xaxis_title="Date", show_legend=False)
     fig.update_layout(
-        title=f"Candlestick Chart for {stock_name}",
-        xaxis_title="Date",
-        yaxis_title="Price (INR)",
-        template="plotly_white"
+        xaxis_rangeslider_visible=False  # Hide range slider to save space and look cleaner
     )
 
     # Write to image
-    fig.write_html("candlestick_chart.html")
+    fig.write_html("static/charts/candlestick_chart.html")
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -607,9 +927,13 @@ def export():
     username = data.get('username')
 
     conn = sqlite3.connect('stock.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
-    stocks = cursor.fetchall()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Stocks WHERE Username=?", (username,))
+        stocks = cursor.fetchall()
+    finally:
+        conn.close()
+
     final_stocks = []
     for stock in stocks:
         temp =[]
@@ -636,8 +960,6 @@ def export():
         else:
             temp.append("0.00%")
         final_stocks.append(temp)
-
-    conn.close()
 
     df = pd.DataFrame(final_stocks, columns=['stock_name','qty','bprice','bdate','cprice','p&l','%change'])
     plot_profit_loss(username, export_png=True)
@@ -666,8 +988,8 @@ def export():
 
 
         # Insert images (ensure these files were saved earlier)
-        worksheet.insert_image("J2", "profit_loss.png")
-        worksheet.insert_image("J30", "portfolio_value.png")
+        worksheet.insert_image("J2", "static/charts/profit_loss.png")
+        worksheet.insert_image("J30", "static/charts/portfolio_value.png")
 
     return send_file(filepath, as_attachment=True)
 

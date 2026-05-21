@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradesight - Smart Stock Portfolio Manager</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="dark-theme">
+    
+    <!-- Animated Ambient Background Shapes for visual depth -->
+    <div class="ambient-glow bg-sphere-1"></div>
+    <div class="ambient-glow bg-sphere-2"></div>
+    <div class="ambient-glow bg-sphere-3"></div>
+
+    <!-- MAIN CONTAINER -->
+    <div id="app-container">
+        
+        <!-- ==================== AUTHENTICATION SECTION ==================== -->
+        <section id="auth-section" class="active-view">
+            <div class="auth-card glassmorphic">
+                <div class="auth-brand">
+                    <div class="brand-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    </div>
+                    <h1>TRADESIGHT</h1>
+                </div>
+                
+                <!-- LOGIN VIEW -->
+                <div id="login-form-container" class="auth-form-container active">
+                    <h2>Welcome Back</h2>
+                    <p class="subtitle font-inter">Enter your credentials to manage your assets</p>
+                    
+                    <form id="login-form" onsubmit="event.preventDefault();">
+                        <div class="form-group">
+                            <label for="login-username">Username</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">👤</span>
+                                <input type="text" id="login-username" placeholder="Username" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="login-password" placeholder="••••••••" required>
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('login-password', this)">👁</button>
+                            </div>
+                        </div>
+                        
+                        <div id="login-error" class="error-msg hidden">Invalid username or password</div>
+                        
+                        <button type="submit" id="btn-login" class="btn-primary glow-button">
+                            <span>Sign In</span>
+                            <div class="btn-loader hidden"></div>
+                        </button>
+                    </form>
+                    
+                    <div class="auth-footer">
+                        <p class="font-inter">Don't have an account? <a href="#" onclick="switchAuthView('signup')">Sign up</a></p>
+                    </div>
+                </div>
+
+                <!-- SIGNUP VIEW -->
+                <div id="signup-form-container" class="auth-form-container">
+                    <h2>Create Account</h2>
+                    <p class="subtitle font-inter">Join Tradesight to automate your stock analysis</p>
+                    
+                    <form id="signup-form" onsubmit="event.preventDefault();">
+                        <div class="form-group">
+                            <label for="signup-username">Username</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">👤</span>
+                                <input type="text" id="signup-username" placeholder="Username" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-email">Email Address</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">✉️</span>
+                                <input type="email" id="signup-email" placeholder="name@example.com" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="signup-password" placeholder="••••••••" required>
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signup-password', this)">👁</button>
+                            </div>
+                        </div>
+                        
+                        <div id="signup-error" class="error-msg hidden">User already exists or invalid email</div>
+                        <div id="signup-success" class="success-msg hidden">Registration successful! Redirecting...</div>
+                        
+                        <button type="submit" id="btn-signup" class="btn-primary glow-button">
+                            <span>Create Account</span>
+                            <div class="btn-loader hidden"></div>
+                        </button>
+                    </form>
+                    
+                    <div class="auth-footer">
+                        <p class="font-inter">Already have an account? <a href="#" onclick="switchAuthView('login')">Sign in</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== DASHBOARD SECTION ==================== -->
+        <section id="main-section" class="hidden">
+            <!-- SIDEBAR -->
+            <nav id="sidebar" class="glassmorphic">
+                <div class="sidebar-brand">
+                    <div class="brand-icon glow-accent">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                    </div>
+                    <span>TRADESIGHT</span>
+                </div>
+                
+                <ul class="sidebar-menu">
+                    <li class="menu-item active" onclick="switchTab('dashboard')">
+                        <span class="menu-icon">📊</span>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="menu-item" onclick="switchTab('portfolio')">
+                        <span class="menu-icon">💼</span>
+                        <span>Portfolio</span>
+                    </li>
+                    <li class="menu-item" onclick="switchTab('analysis')">
+                        <span class="menu-icon">📈</span>
+                        <span>Analysis</span>
+                    </li>
+                    <li class="menu-item" onclick="switchTab('research')">
+                        <span class="menu-icon">🔍</span>
+                        <span>Research</span>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-user">
+                    <div class="user-pill glassmorphic">
+                        <div class="user-avatar" id="user-avatar-initial">U</div>
+                        <div class="user-info">
+                            <div class="user-name" id="user-display-name">Username</div>
+                            <div class="user-role font-inter">Investor</div>
+                        </div>
+                        <button class="btn-logout" title="Sign Out" onclick="logoutUser()">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- MAIN PANEL CONTENT -->
+            <main id="main-content">
+                
+                <!-- 1. DASHBOARD TAB VIEW -->
+                <div id="tab-dashboard" class="tab-panel active">
+                    <div class="panel-header">
+                        <div>
+                            <h1>Portfolio Dashboard</h1>
+                            <p class="panel-subtitle">Real-time asset analysis and currency converters</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button class="btn-secondary" id="btn-refresh-dashboard">
+                                <span>🔄 Refresh Metrics</span>
+                                <div class="loader-inline hidden"></div>
+                            </button>
+                            <button class="btn-accent glow-button" id="btn-export-dashboard">
+                                <span>📥 Export Excel Report</span>
+                                <div class="loader-inline hidden"></div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- METRICS GRID -->
+                    <div class="metrics-grid">
+                        <!-- Metric Card 1 -->
+                        <div class="metric-card glassmorphic hover-scale">
+                            <div class="metric-info">
+                                <span class="metric-title font-inter">TOTAL PORTFOLIO VALUE</span>
+                                <h2 class="metric-value" id="portfolio-value-display">₹0.00</h2>
+                                <span class="metric-desc font-inter">Current market value of assets</span>
+                            </div>
+                            <div class="metric-graphic glow-blue">💼</div>
+                        </div>
+                        <!-- Metric Card 2 -->
+                        <div class="metric-card glassmorphic hover-scale" id="pnl-metric-card">
+                            <div class="metric-info">
+                                <span class="metric-title font-inter">TODAY'S PROFIT & LOSS</span>
+                                <h2 class="metric-value" id="portfolio-pnl-display">₹0.00</h2>
+                                <span class="metric-desc font-inter">Live performance tracking</span>
+                            </div>
+                            <div class="metric-graphic glow-emerald" id="pnl-graphic">📈</div>
+                        </div>
+                        <!-- Metric Card 3 -->
+                        <div class="metric-card glassmorphic hover-scale">
+                            <div class="metric-info">
+                                <span class="metric-title font-inter">TOTAL INVESTMENT</span>
+                                <h2 class="metric-value text-blue" id="portfolio-investment-display">₹0.00</h2>
+                                <span class="metric-desc font-inter">Invested capital principal</span>
+                            </div>
+                            <div class="metric-graphic glow-purple">💰</div>
+                        </div>
+                    </div>
+                    
+                    <!-- CURRENCY EXCHANGE UTILITY -->
+                    <div class="content-card glassmorphic dashboard-exchange-card">
+                        <div class="card-header">
+                            <div class="card-title-container">
+                                <span class="card-title-icon">💱</span>
+                                <h3>Universal Currency Converter</h3>
+                            </div>
+                            <span class="card-badge font-inter">Live Exchange Rates API</span>
+                        </div>
+                        <div class="exchange-container">
+                            <div class="exchange-row">
+                                <div class="exchange-input-group">
+                                    <label for="exchange-amount">Source Amount</label>
+                                    <input type="number" id="exchange-amount" value="1" min="0" step="any">
+                                </div>
+                                <div class="exchange-select-group">
+                                    <label for="exchange-base-currency">From Currency</label>
+                                    <select id="exchange-base-currency" class="glassmorphic">
+                                        <option value="" disabled selected>Select currency</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="exchange-divider">
+                                <div class="divider-circle">⬇</div>
+                            </div>
+                            <div class="exchange-row">
+                                <div class="exchange-input-group">
+                                    <label for="exchange-result">Converted Amount</label>
+                                    <input type="text" id="exchange-result" readonly placeholder="Result">
+                                </div>
+                                <div class="exchange-select-group">
+                                    <label for="exchange-target-currency">To Currency</label>
+                                    <select id="exchange-target-currency" class="glassmorphic">
+                                        <option value="" disabled selected>Select currency</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 2. PORTFOLIO TAB VIEW -->
+                <div id="tab-portfolio" class="tab-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h1>Current Holdings</h1>
+                            <p class="panel-subtitle">Manage and track your active equity positions</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button class="btn-accent glow-button" id="btn-export-portfolio">
+                                <span>📥 Export Excel Report</span>
+                                <div class="loader-inline hidden"></div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Holdings Table Card -->
+                    <div class="content-card glassmorphic full-width-card table-card">
+                        <div class="card-header">
+                            <div class="card-title-container">
+                                <span class="card-title-icon">💼</span>
+                                <h3>Portfolio Positions</h3>
+                            </div>
+                            <span class="card-badge font-inter" id="positions-count">0 Holdings</span>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="holdings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Stock Name</th>
+                                        <th>Quantity</th>
+                                        <th>Buying Price</th>
+                                        <th>Purchase Date</th>
+                                        <th>Current Price</th>
+                                        <th>P&L (INR)</th>
+                                        <th>Change (%)</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows added here -->
+                                    <tr class="empty-state-row">
+                                        <td colspan="8" class="text-center font-inter">No stock assets in portfolio. Use the form below to add positions.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Stock Position Form -->
+                    <div class="content-card glassmorphic form-card">
+                        <div class="card-header">
+                            <div class="card-title-container">
+                                <span class="card-title-icon">➕</span>
+                                <h3>Add New Position</h3>
+                            </div>
+                        </div>
+                        
+                        <form id="add-stock-form" class="inline-form" onsubmit="event.preventDefault();">
+                            <div class="form-input-container">
+                                <div class="form-group-inline">
+                                    <label for="add-stock-name">Company Name / Symbol</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input type="text" id="add-stock-name" placeholder="e.g. Reliance, Apple, TCS" autocomplete="off" required>
+                                        <div class="autocomplete-dropdown hidden" id="add-stock-name-suggestions"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="add-stock-qty">Quantity</label>
+                                    <input type="number" id="add-stock-qty" placeholder="10" min="1" required>
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="add-stock-price">Buying Price per Share</label>
+                                    <input type="number" id="add-stock-price" placeholder="1500.50" step="any" min="0" required>
+                                </div>
+                                <div class="form-group-inline">
+                                    <label for="add-stock-date">Purchase Date</label>
+                                    <input type="date" id="add-stock-date" required>
+                                </div>
+                            </div>
+                            <div class="form-submit-container">
+                                <button type="submit" class="btn-primary glow-button inline-submit-btn">
+                                    <span>Add Asset</span>
+                                    <div class="loader-inline hidden"></div>
+                                </button>
+                            </div>
+                        </form>
+                        <div id="add-stock-error" class="error-msg inline-error hidden">Failed to add stock. Please check company name or live pricing availability.</div>
+                    </div>
+                </div>
+                
+                <!-- 3. ANALYSIS TAB VIEW -->
+                <div id="tab-analysis" class="tab-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h1>Portfolio Analysis</h1>
+                            <p class="panel-subtitle">Generate candlestick charts, capital distribution, and profit analytics</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Search and timeframe selection -->
+                    <div class="content-card glassmorphic analysis-search-card">
+                        <form id="analysis-form" onsubmit="event.preventDefault();">
+                            <div class="analysis-grid">
+                                <div class="form-group">
+                                    <label for="analysis-stock-name">Stock Security Name</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input type="text" id="analysis-stock-name" placeholder="Search security (e.g. Infosys, Tesla)" autocomplete="off" required>
+                                        <div class="autocomplete-dropdown hidden" id="analysis-stock-name-suggestions"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Period Selection</label>
+                                    <div class="period-radio-group">
+                                        <label class="radio-label">
+                                            <input type="radio" name="analysis-period" value="daily" checked>
+                                            <span class="custom-radio">Daily</span>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="analysis-period" value="monthly">
+                                            <span class="custom-radio">Monthly</span>
+                                        </label>
+                                        <label class="radio-label">
+                                            <input type="radio" name="analysis-period" value="yearly">
+                                            <span class="custom-radio">Yearly</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Daily Range Picker container -->
+                            <div id="analysis-range-daily" class="analysis-sub-inputs active">
+                                <div class="sub-inputs-row">
+                                    <div class="form-group">
+                                        <label for="analysis-daily-from">From Date</label>
+                                        <input type="date" id="analysis-daily-from">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="analysis-daily-to">To Date</label>
+                                        <input type="date" id="analysis-daily-to">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Monthly Range Picker container -->
+                            <div id="analysis-range-monthly" class="analysis-sub-inputs">
+                                <div class="sub-inputs-row">
+                                    <div class="form-group">
+                                        <label for="analysis-monthly-month">From Month</label>
+                                        <select id="analysis-monthly-month" class="glassmorphic">
+                                            <option value="01">Jan</option>
+                                            <option value="02">Feb</option>
+                                            <option value="03">Mar</option>
+                                            <option value="04">Apr</option>
+                                            <option value="05">May</option>
+                                            <option value="06">Jun</option>
+                                            <option value="07">Jul</option>
+                                            <option value="08">Aug</option>
+                                            <option value="09">Sep</option>
+                                            <option value="10">Oct</option>
+                                            <option value="11">Nov</option>
+                                            <option value="12">Dec</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="analysis-monthly-year">From Year</label>
+                                        <select id="analysis-monthly-year" class="glassmorphic"></select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Yearly Range Picker container -->
+                            <div id="analysis-range-yearly" class="analysis-sub-inputs">
+                                <div class="sub-inputs-row">
+                                    <div class="form-group">
+                                        <label for="analysis-yearly-year">From Year</label>
+                                        <select id="analysis-yearly-year" class="glassmorphic"></select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary glow-button analysis-submit-btn">
+                                <span>Generate Visual Charts</span>
+                                <div class="btn-loader hidden"></div>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- CHARTS GRID DISPLAY -->
+                    <div id="analysis-charts-section" class="hidden">
+                        <!-- Top Candlestick Chart -->
+                        <div class="content-card glassmorphic chart-full-card">
+                            <div class="card-header">
+                                <div class="card-title-container">
+                                    <span class="card-title-icon">🕯️</span>
+                                    <h3 id="candlestick-chart-title">Candlestick Chart</h3>
+                                </div>
+                                <span class="card-badge font-inter bg-blue">Plotly Interactive</span>
+                            </div>
+                            <div class="chart-wrapper">
+                                <div class="chart-loading-skeleton hidden">
+                                    <div class="skeleton-ring"></div>
+                                    <p class="font-inter">Rendering high-volume candlesticks...</p>
+                                </div>
+                                <iframe id="iframe-candlestick" src="about:blank"></iframe>
+                            </div>
+                        </div>
+                        
+                        <!-- Bottom Split Charts (Portfolio P&L & Portfolio value) -->
+                        <div class="charts-double-row">
+                            <div class="content-card glassmorphic chart-half-card">
+                                <div class="card-header">
+                                    <div class="card-title-container">
+                                        <span class="card-title-icon">📊</span>
+                                        <h3>Portfolio Holdings Profit/Loss</h3>
+                                    </div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <div class="chart-loading-skeleton hidden">
+                                        <div class="skeleton-ring"></div>
+                                    </div>
+                                    <iframe id="iframe-profitloss" src="about:blank"></iframe>
+                                </div>
+                            </div>
+                            
+                            <div class="content-card glassmorphic chart-half-card">
+                                <div class="card-header">
+                                    <div class="card-title-container">
+                                        <span class="card-title-icon">📈</span>
+                                        <h3>Portfolio Value Trend</h3>
+                                    </div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <div class="chart-loading-skeleton hidden">
+                                        <div class="skeleton-ring"></div>
+                                    </div>
+                                    <iframe id="iframe-portfoliovalue" src="about:blank"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 4. RESEARCH TAB VIEW -->
+                <div id="tab-research" class="tab-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h1>Stock Research Center</h1>
+                            <p class="panel-subtitle">Comprehensive corporate financials, dynamic charts, and Prophet ML predictions</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Init search form -->
+                    <div class="content-card glassmorphic research-search-card">
+                        <form id="research-search-form" onsubmit="event.preventDefault();">
+                            <div class="research-input-wrapper">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="research-stock-query" placeholder="Enter stock name, symbol, or code (e.g. TCS, Apple, Microsoft)" autocomplete="off" required>
+                                <button type="submit" class="btn-primary glow-button research-btn">
+                                    <span>Analyze Equity</span>
+                                    <div class="btn-loader hidden"></div>
+                                </button>
+                                <div class="autocomplete-dropdown hidden" id="research-stock-query-suggestions"></div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Default State Message -->
+                    <div id="research-empty-state" class="research-empty-state card glassmorphic">
+                        <div class="empty-icon glow-blue">🔍</div>
+                        <h3>Initiate Stock Analysis</h3>
+                        <p class="font-inter">Search for any security above to load direct yfinance metrics, plot interactive price history charts, and run neural predictions.</p>
+                    </div>
+                    
+                    <!-- Core Research Details Panel (hidden initially) -->
+                    <div id="research-details-section" class="hidden">
+                        
+                        <!-- Company Header Card -->
+                        <div class="content-card glassmorphic company-header-card">
+                            <div class="company-brand-details">
+                                <h1 id="research-company-name">Microsoft Corporation</h1>
+                                <div class="company-sub-tags font-inter">
+                                    <span class="badge-tag" id="research-company-symbol">MSFT</span>
+                                    <span class="badge-tag" id="research-company-exchange">NASDAQ</span>
+                                    <span class="badge-tag" id="research-company-industry">Software</span>
+                                </div>
+                            </div>
+                            <div class="company-price-box">
+                                <h2 id="research-live-price">₹0.00</h2>
+                                <span id="research-price-change" class="price-pill-indicator positive font-inter">+0.00 (+0.00%)</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Ratios & Metrics Grid -->
+                        <div class="ratios-grid">
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">Previous Close</span>
+                                <span class="ratio-value" id="ratio-prevclose">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">Open</span>
+                                <span class="ratio-value" id="ratio-open">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">Day High</span>
+                                <span class="ratio-value" id="ratio-high">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">Day Low</span>
+                                <span class="ratio-value" id="ratio-low">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">52 Wk High</span>
+                                <span class="ratio-value" id="ratio-52high">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">52 Wk Low</span>
+                                <span class="ratio-value" id="ratio-52low">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">P/E Ratio</span>
+                                <span class="ratio-value text-blue" id="ratio-pe">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">EPS (Earning/Share)</span>
+                                <span class="ratio-value text-emerald" id="ratio-eps">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">Book Value</span>
+                                <span class="ratio-value" id="ratio-bookvalue">0.00</span>
+                            </div>
+                            <div class="ratio-item glassmorphic">
+                                <span class="ratio-label font-inter">200 Day Average</span>
+                                <span class="ratio-value" id="ratio-200avg">0.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Interactive Closing Price Chart & Range Filter -->
+                        <div class="content-card glassmorphic chart-full-card">
+                            <div class="card-header">
+                                <div class="card-title-container">
+                                    <span class="card-title-icon">📊</span>
+                                    <h3>Closing Price & Trading Volume Chart</h3>
+                                </div>
+                                <div class="chart-range-buttons font-inter">
+                                    <button class="range-btn" onclick="updateResearchChartDuration('1D', this)">1D</button>
+                                    <button class="range-btn" onclick="updateResearchChartDuration('5D', this)">5D</button>
+                                    <button class="range-btn active" onclick="updateResearchChartDuration('1M', this)">1M</button>
+                                    <button class="range-btn" onclick="updateResearchChartDuration('6M', this)">6M</button>
+                                    <button class="range-btn" onclick="updateResearchChartDuration('1Y', this)">1Y</button>
+                                    <button class="range-btn" onclick="updateResearchChartDuration('5Y', this)">5Y</button>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <div class="chart-loading-skeleton hidden" id="research-chart-skeleton">
+                                    <div class="skeleton-ring"></div>
+                                    <p class="font-inter">Downloading live Yahoo Finance parameters...</p>
+                                </div>
+                                <iframe id="iframe-research-live" src="about:blank"></iframe>
+                            </div>
+                        </div>
+                        
+                        <!-- ML Prediction Section: XGBoost direction + ARIMA price forecast -->
+                        <div class="content-card glassmorphic chart-full-card prediction-section-card">
+                            <div class="card-header">
+                                <div class="card-title-container">
+                                    <span class="card-title-icon">🤖</span>
+                                    <h3>ML Forecast - Direction Classifier + 30-Day Price Trend</h3>
+                                </div>
+                                <span class="card-badge font-inter glow-emerald-border text-emerald">XGBoost + ARIMA</span>
+                            </div>
+
+                            <div class="prediction-alert-box glassmorphic">
+                                <div class="alert-icon">💡</div>
+                                <div class="alert-content">
+                                    <h4 class="font-inter">Model Forecast Decision</h4>
+                                    <p id="prediction-model-decision-text" class="font-inter">Training classifier on technical indicators and fitting ARIMA trend...</p>
+                                </div>
+                            </div>
+
+                            <div class="chart-wrapper">
+                                <div class="chart-loading-skeleton" id="prediction-chart-skeleton">
+                                    <div class="skeleton-ring"></div>
+                                    <p class="font-inter">Engineering features, training XGBoost, fitting ARIMA...</p>
+                                </div>
+                                <iframe id="iframe-research-predict" src="about:blank"></iframe>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </main>
+        </section>
+        
+    </div>
+
+    <!-- Application Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
