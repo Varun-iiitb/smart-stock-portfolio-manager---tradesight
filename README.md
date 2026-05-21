@@ -1,73 +1,74 @@
-# 📊 Smart Stock Portfolio Manager - TradeSight
+# 📊 TradeSight — Smart Stock Portfolio Manager
 
 ## 🧠 Overview
 
-**TradeSight** is a smart stock portfolio management and research desktop application built to help users:
-
-- 📈 Monitor live stock performance  
-- 📉 Analyze technical indicators like MACD, RSI, EMA  
-- 🤖 Generate machine learning-based price predictions  
-- 🧾 Export professional Excel-based stock reports  
-
-The app uses a **JavaFX GUI frontend** and a **Python backend** for powerful financial analysis and data visualization.
+**TradeSight** is a desktop stock portfolio manager and research tool. Track your
+holdings, analyze price history, research any listed company, and get
+machine-learning price forecasts — all from a clean web-based interface that
+runs locally on your own machine.
 
 ---
 
 ## 🚀 Features
 
-- 🔍 **Searchable stock interface** with autocomplete  
-- 📊 **Real-time chart display** (via Plotly)  
-- 📉 **Technical metric visualizations** (MACD, RSI, EMA)  
-- 🔮 **Price prediction** using Facebook Prophet model  
-- 🧠 Backend-driven **data analysis**  
-- 📤 **Excel report export** feature  
+- 🔐 **User accounts** — register and log in
+- 💼 **Portfolio tracking** — add positions with live ticker validation, view
+  real-time P&L, and remove positions from the holdings table
+- 📊 **Dashboard** — total portfolio value, today's profit/loss, total
+  investment, and a built-in universal currency converter
+- 📈 **Analysis** — candlestick charts, profit/loss distribution, and portfolio
+  value trends over daily / monthly / yearly periods
+- 🔍 **Research** — detailed company financials (P/E, EPS, book value, 52-week
+  range, day high/low) plus interactive price-and-volume charts
+- 🤖 **ML prediction** — an XGBoost classifier predicts next-day price direction
+  from technical indicators, and an ARIMA model forecasts the 30-day price trend
+- 🔎 **Autocomplete** — type a company name anywhere and pick from a live
+  Yahoo Finance dropdown
+- 📤 **Excel report export** — generate a formatted `report.xlsx` with charts
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer        | Technology                  |
-|--------------|------------------------------|
-| **Frontend** | Java, JavaFX                 |
-| **Backend**  | Python (Flask)               |
-| **Charts**   | Plotly                       |
-| **Prediction**| Prophet                     |
+| Layer            | Technology                              |
+|------------------|------------------------------------------|
+| **Frontend**     | HTML, CSS, JavaScript                    |
+| **Backend**      | Python, Flask                            |
+| **Server**       | Waitress                                 |
+| **Charts**       | Plotly                                   |
+| **ML / Forecast**| XGBoost, scikit-learn, statsmodels (ARIMA) |
+| **Market data**  | yfinance, Yahoo Finance API              |
+| **Database**     | SQLite                                   |
 
 ---
 
-## 🖥️ How to Run the Application
+## 🖥️ How to Run
 
-### ✅ End Users
+### ▶️ Quick start (desktop app)
 
-1. Download both the **backend** and **frontend** (TradeSight) folders.  
-2. Place them together inside a single directory.  
+Double-click the **Tradesight** icon on your desktop. The server starts in the
+background and the app opens in its own window — no terminal needed.
 
+### 🧑‍💻 Setup (first time / developer)
 
-**Start the Frontend (JavaFX)**  
-Open the `tradesight` frontend folder in **IntelliJ IDEA**, **Eclipse**, or any Java IDE that supports JavaFX, and run the main application class `Login_Page.java`.
-
-3. Enter a valid stock symbol (e.g., `AAPL`, `TSLA`, `INFY.NS`).  
-4. Click **Submit** to fetch charts and predictions.  
-5. Click **Export** to generate a report in `report.xlsx`.  
-
-> ⚠️ The **backend must be running before launching the frontend**.  
-> ⚠️ Requires **internet access** to fetch stock data and generate predictions.
-
----
-
-### 🧑‍💻 Developer Setup 
-
-#### 🔧 Requirements
-
-- JDK 17+  
-- Python 3.10+  
-- JavaFX SDK 17 or 21+  
-- pip: Flask, Prophet, Plotly, pandas, numpy, yfinance, requests, openpyxl  
-
-#### ⚙️ Run Backend (Python)
+**Requirements:** Python 3.10+ and an internet connection.
 
 ```bash
 cd backend
+python -m venv .venv
+.venv\Scripts\activate          # Windows  (use: source .venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
-python app.py
+python run_app.py
 ```
+
+`run_app.py` launches the Waitress server and opens the app automatically.
+To run the raw Flask development server instead, use `python app.py`.
+
+### 📝 Notes
+
+- ⚠️ Requires **internet access** — live market data, predictions, and exchange
+  rates are all fetched online.
+- Your accounts and portfolios are stored locally in `backend/users.db` and
+  `backend/stock.db`; these files are **not** committed to the repository.
+- Optional: create a `backend/.env` file with `FMP_API_KEY` and
+  `EXCHANGE_RATE_API_KEY` to use your own API keys.

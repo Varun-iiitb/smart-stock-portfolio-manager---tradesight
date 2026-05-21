@@ -244,3 +244,15 @@ hs_err_pid*
 bin/
 out/
 target/
+
+# === TradeSight project-specific ===
+
+# Local databases (contain user accounts and portfolios)
+*.db
+
+# Generated reports and charts
+report.xlsx
+backend/static/charts/
+
+# Code runner scratch file
+tempCodeRunnerFile.python
