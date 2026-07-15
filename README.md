@@ -25,6 +25,9 @@ runs locally on your own machine.
 - 🔎 **Autocomplete** — type a company name anywhere and pick from a live
   Yahoo Finance dropdown
 - 📤 **Excel report export** — generate a formatted `report.xlsx` with charts
+- 📧 **Auto-import from Gmail** — contract-note PDFs (from `cnote@shcilservices.com`)
+  are pulled straight from your inbox and imported as portfolio positions, with
+  no manual downloading
 
 ---
 
@@ -41,6 +44,34 @@ runs locally on your own machine.
 | **Database**     | SQLite                                   |
 
 ---
+
+## 📁 Project Structure
+
+```
+smart-stock-portfolio-manager---tradesight/
+├── frontend/          # UI served by Flask
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── backend/           # Python / Flask application
+│   ├── app.py                    # Flask server + routes + chart generation
+│   ├── run_app.py                # Waitress desktop launcher
+│   ├── contract_note_importer.py # CCN PDF importer + folder watcher
+│   ├── gmail_contract_fetcher.py # pulls contract-note PDFs from Gmail
+│   ├── credentials.json / token.json  # Gmail OAuth (not committed)
+│   ├── final_prediction_code.py  # XGBoost + ARIMA ML
+│   ├── requirements.txt
+│   ├── Tradesight.vbs            # Windows no-console launcher
+│   ├── tradesight.ico
+│   └── *.db                      # local SQLite data (not committed)
+└── analytics_charts/  # All runtime-generated output (not committed)
+    ├── charts/        # live Plotly charts (html/png)
+    ├── legacy-charts/ # older chart snapshots
+    └── report.xlsx    # exported Excel report
+```
+
+The backend serves the `frontend/` files at `/static/*` and the generated
+charts at `/charts/*`.
 
 ## 🖥️ How to Run
 
@@ -72,3 +103,23 @@ To run the raw Flask development server instead, use `python app.py`.
   `backend/stock.db`; these files are **not** committed to the repository.
 - Optional: create a `backend/.env` file with `FMP_API_KEY` and
   `EXCHANGE_RATE_API_KEY` to use your own API keys.
+
+### 📧 Gmail contract-note import
+
+TradeSight can download SHCIL/StockHolding contract-note PDFs directly from
+Gmail (sender `cnote@shcilservices.com`) into the contract-notes folder, then
+import them automatically:
+
+- **On demand** — the **Import Contract Notes** button (Portfolio tab) first
+  pulls any new e-mailed notes, then imports.
+- **In the background** — a poller checks Gmail every 5 minutes.
+
+Requires `backend/credentials.json` + `backend/token.json` (Gmail OAuth,
+`gmail.modify` scope) — these are git-ignored secrets. The first time (or after
+the token expires) click **Import Contract Notes** once; a browser window opens
+for a one-time Google login and a fresh `token.json` is saved. The background
+poller never opens a browser on its own.
+
+> ℹ️ If your Google Cloud OAuth consent screen is in **Testing** mode, refresh
+> tokens expire after 7 days — set it to **In production** to keep the
+> background poller running unattended.

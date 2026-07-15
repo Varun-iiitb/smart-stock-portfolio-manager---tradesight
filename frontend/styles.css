@@ -1208,6 +1208,8 @@ tr.empty-state-row td {
 
 .research-search-card {
     padding: 12px;
+    position: relative;
+    z-index: 100;
 }
 
 .research-input-wrapper {

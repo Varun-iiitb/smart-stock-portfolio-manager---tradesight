@@ -7,6 +7,13 @@ import plotly.graph_objects as go
 
 warnings.filterwarnings("ignore")
 
+# Generated charts are written to the shared analytics_charts/charts folder
+# (sibling of backend/), resolved from this file's location so it works
+# regardless of CWD.
+CHARTS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'analytics_charts', 'charts')
+)
+
 
 def apply_premium_theme(fig, title, yaxis_title=None, xaxis_title=None, show_legend=True):
     fig.update_layout(
@@ -200,15 +207,15 @@ def _write_chart(ticker_symbol, hist, forecast_df):
     )
     fig.update_layout(height=500)
 
-    os.makedirs("static/charts", exist_ok=True)
-    fig.write_html("static/charts/prediction.html")
+    os.makedirs(CHARTS_DIR, exist_ok=True)
+    fig.write_html(os.path.join(CHARTS_DIR, "prediction.html"))
 
 
 def data(ticker_symbol):
     """Predict next-day direction (XGBoost classifier on technical indicators)
     and a 30-day price-level forecast (ARIMA on log-prices).
 
-    Writes static/charts/prediction.html and returns a human-readable summary."""
+    Writes analytics_charts/charts/prediction.html and returns a human-readable summary."""
     from xgboost import XGBClassifier
     from sklearn.metrics import accuracy_score
 

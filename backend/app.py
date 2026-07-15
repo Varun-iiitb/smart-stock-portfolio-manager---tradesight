@@ -1,13 +1,39 @@
+import os
+import sys
+
+# When launched with pythonw.exe (e.g. via Tradesight.vbs), there is no console
+# so sys.stdout / sys.stderr are None. Any print() then raises and crashes the
+# route mid-request. Redirect to a log file so the many print() calls are safe
+# and still recorded for debugging.
+def _ensure_std_streams():
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tradesight.log')
+    try:
+        log_file = open(log_path, 'a', buffering=1, encoding='utf-8')
+    except Exception:
+        log_file = open(os.devnull, 'w')
+    if sys.stdout is None:
+        sys.stdout = log_file
+    if sys.stderr is None:
+        sys.stderr = log_file
+
+_ensure_std_streams()
+
 import yfinance as yf
 import requests
 import sqlite3
 from datetime import date
-from flask import Flask, request, jsonify,send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 import pandas as pd
 import plotly.graph_objects as go
 from flask_cors import CORS
 import final_prediction_code
-import os
+from contract_note_importer import (
+    scan_and_import_all, get_processed_files,
+    set_watcher_username, start_watcher,
+)
+from gmail_contract_fetcher import fetch_new_contract_notes, start_gmail_watcher
 
 # Load environment variables from .env if present
 def load_env():
@@ -28,12 +54,26 @@ load_env()
 # print = functools.partial(print, flush=True)
 
 
-app = Flask(__name__, static_folder='static', static_url_path='/static')
-os.makedirs("static/charts", exist_ok=True)
+# Project paths. app.py lives in backend/; the frontend and generated output
+# live in sibling folders so the three concerns (code / UI / artifacts) stay
+# cleanly separated.
+BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR  = os.path.abspath(os.path.join(BASE_DIR, '..', 'frontend'))
+ANALYTICS_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', 'analytics_charts'))
+CHARTS_DIR    = os.path.join(ANALYTICS_DIR, 'charts')
+
+app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='/static')
+os.makedirs(CHARTS_DIR, exist_ok=True)
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/charts/<path:filename>')
+def charts(filename):
+    """Serve generated Plotly charts (written to ../analytics_charts/charts) to
+    the dashboard iframes."""
+    return send_from_directory(CHARTS_DIR, filename)
 
 def apply_premium_theme(fig, title, yaxis_title=None, xaxis_title=None, show_legend=True):
     fig.update_layout(
@@ -422,9 +462,12 @@ def plot_live_price():
             yaxis='y2'
         ))
 
+        print(f"close_prices length: {len(close_prices)}, volume_data length: {len(volume_data)}", flush=True)
+
         apply_premium_theme(fig, f'{ticker_symbols} - Price and Volume History', yaxis_title="Price", xaxis_title="Date")
-        
+
         fig.update_layout(
+            height=450,
             yaxis=dict(side='left'),
             yaxis2=dict(
                 title=dict(text="Volume", font=dict(color="#9ca3af")),
@@ -436,7 +479,9 @@ def plot_live_price():
             )
         )
 
-        fig.write_html("static/charts/live_stock_prices.html")
+        fig.write_html(os.path.join(CHARTS_DIR, "live_stock_prices.html"),
+                       include_plotlyjs=True, full_html=True,
+                       config={"responsive": True})
         return '', 204  # No Content
 
     except Exception as e:
@@ -455,11 +500,49 @@ def plot_profit_loss(username,export_png = False):
     finally:
         conn.close()
 
+    # Batch-download all unique tickers in ONE yfinance call
+    unique_tickers = list({stock[6] for stock in stocks})
+    price_cache = {}
+    if unique_tickers:
+        try:
+            batch = yf.download(unique_tickers, period="2d", interval="1d",
+                                auto_adjust=True, progress=False)
+            # yfinance returns MultiIndex columns; slice the 'Close' level
+            try:
+                close_df = batch["Close"]
+            except KeyError:
+                close_df = batch
+
+            if not close_df.empty:
+                # Forward-fill so a still-empty latest row (e.g. today's bar
+                # before market data lands) doesn't blank out every ticker and
+                # force the slow per-ticker get_live_price fallback below.
+                last_row = close_df.ffill().iloc[-1]
+                # last_row is a Series; index is ticker symbols
+                for t in unique_tickers:
+                    try:
+                        if isinstance(last_row, pd.Series):
+                            val = last_row.get(t)
+                        else:
+                            val = float(last_row)
+                        if val is not None and not pd.isna(val):
+                            price_cache[t] = float(val)
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"Batch price fetch failed, falling back: {e}")
+        # Fallback for any ticker still missing
+        for t in unique_tickers:
+            if t not in price_cache:
+                p = get_live_price(t)
+                if p:
+                    price_cache[t] = p
+
     stock_dict = {}
     for stock in stocks:
         stock_name = stock[2]
         ticker_symbol = stock[6]
-        live_price = get_live_price(ticker_symbol)
+        live_price = price_cache.get(ticker_symbol)
         if live_price is not None:
             if stock_name not in stock_dict:
                 stock_dict[stock_name] = 0
@@ -488,11 +571,12 @@ def plot_profit_loss(username,export_png = False):
         height=400
     )
 
-    fig.write_html("static/charts/profit_loss.html")
+    fig.write_html(os.path.join(CHARTS_DIR, "profit_loss.html"),
+                   include_plotlyjs=True, full_html=True, config={"responsive": True})
 
     if (export_png):
         fig.update_layout(paper_bgcolor='#0a0c10', plot_bgcolor='#0a0c10')
-        fig.write_image("static/charts/profit_loss.png")
+        fig.write_image(os.path.join(CHARTS_DIR, "profit_loss.png"))
 
 def portfolio_value(username,start_date=None, end_date=None,export_png = False):
     print("portfolio_value",flush=True)
@@ -519,7 +603,8 @@ def portfolio_value(username,start_date=None, end_date=None,export_png = False):
         fig = go.Figure()
         apply_premium_theme(fig, "Portfolio Net Value Trend", show_legend=False)
         fig.update_layout(width=700, height=400)
-        fig.write_html("static/charts/portfolio_value.html")
+        fig.write_html(os.path.join(CHARTS_DIR, "portfolio_value.html"),
+                       include_plotlyjs=True, full_html=True, config={"responsive": True})
         return
 
     data = yf.download(tickers, start=start_date, end=end_date)
@@ -527,7 +612,8 @@ def portfolio_value(username,start_date=None, end_date=None,export_png = False):
         fig = go.Figure()
         apply_premium_theme(fig, "Portfolio Net Value Trend", show_legend=False)
         fig.update_layout(width=700, height=400)
-        fig.write_html("static/charts/portfolio_value.html")
+        fig.write_html(os.path.join(CHARTS_DIR, "portfolio_value.html"),
+                       include_plotlyjs=True, full_html=True, config={"responsive": True})
         return
 
     close_data = data['Close']
@@ -571,10 +657,10 @@ def portfolio_value(username,start_date=None, end_date=None,export_png = False):
         height=400
     )
     
-    fig.write_html("static/charts/portfolio_value.html")
+    fig.write_html(os.path.join(CHARTS_DIR, "portfolio_value.html"))
     if export_png:
         fig.update_layout(paper_bgcolor='#0a0c10', plot_bgcolor='#0a0c10')
-        fig.write_image("static/charts/portfolio_value.png")
+        fig.write_image(os.path.join(CHARTS_DIR, "portfolio_value.png"))
 
 @app.route('/portfolio_value_today', methods=['POST'])
 def portfolio_value_today():
@@ -854,30 +940,35 @@ def plot_all_graphs():
     mode = data.get("mode")
     ticker_symbol = search_ticker(stock_name)
 
+    # Resolve the date range for the selected mode
     if mode == "daily":
         start_date = data.get('start_date')
         end_date = data.get('end_date')
-        candle_stick_graph(stock_name,ticker_symbol,start_date, end_date)
-        plot_profit_loss(username)
-        portfolio_value(username)
-    
     elif mode == "monthly":
         month = data.get('month')
         year = data.get('year')
         start_date = f"{year}-{month}-01"
-        end_date = f"{year}-{month}-28"  # Assuming 28 days for
-        candle_stick_graph(stock_name,ticker_symbol,start_date, end_date)
-        plot_profit_loss(username)
-        portfolio_value(username)
-    
+        end_date = f"{year}-{month}-28"
     elif mode == "yearly":
         year = data.get('year')
         start_date = f"{year}-01-01"
         end_date = f"{year}-12-31"
-        candle_stick_graph(stock_name,ticker_symbol,start_date, end_date)
-        plot_profit_loss(username)
-        portfolio_value(username)
-    
+    else:
+        return jsonify({"error": f"Unknown mode '{mode}'"}), 400
+
+    # The three plots are independent (separate DB connections, downloads and
+    # output files), so run them concurrently instead of back-to-back to cut
+    # wall-clock time roughly to that of the slowest single plot.
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = [
+            pool.submit(candle_stick_graph, stock_name, ticker_symbol, start_date, end_date),
+            pool.submit(plot_profit_loss, username),
+            pool.submit(portfolio_value, username, start_date=start_date, end_date=end_date),
+        ]
+        for f in futures:
+            f.result()  # re-raise any exception from the worker threads
+
     return '',204
 
 def candle_stick_graph(stock_name,ticker_symbol, start_date, end_date):
@@ -907,7 +998,8 @@ def candle_stick_graph(stock_name,ticker_symbol, start_date, end_date):
     )
 
     # Write to image
-    fig.write_html("static/charts/candlestick_chart.html")
+    fig.write_html(os.path.join(CHARTS_DIR, "candlestick_chart.html"),
+                   include_plotlyjs=True, full_html=True, config={"responsive": True})
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -965,12 +1057,9 @@ def export():
     plot_profit_loss(username, export_png=True)
     portfolio_value(username, start_date="2024-01-01", end_date=date.today(), export_png=True)
 
-    # Get the parent directory of the current script
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(current_dir)
-
-    # Set the file path
-    filepath = os.path.join(parent_dir, "report.xlsx")
+    # Write the Excel report into the shared analytics_charts/ output folder
+    os.makedirs(ANALYTICS_DIR, exist_ok=True)
+    filepath = os.path.join(ANALYTICS_DIR, "report.xlsx")
  
 
     with pd.ExcelWriter(filepath,engine="xlsxwriter") as writer:
@@ -988,10 +1077,64 @@ def export():
 
 
         # Insert images (ensure these files were saved earlier)
-        worksheet.insert_image("J2", "static/charts/profit_loss.png")
-        worksheet.insert_image("J30", "static/charts/portfolio_value.png")
+        worksheet.insert_image("J2", os.path.join(CHARTS_DIR, "profit_loss.png"))
+        worksheet.insert_image("J30", os.path.join(CHARTS_DIR, "portfolio_value.png"))
 
     return send_file(filepath, as_attachment=True)
+
+@app.route('/import_contract_notes', methods=['POST'])
+def import_contract_notes():
+    """
+    Scan the contract notes folder for CCN PDFs and import BUY trades into the portfolio.
+    Body: { username, clear_existing (bool, default false) }
+    """
+    try:
+        data = request.get_json() or {}
+        username = data.get('username')
+        clear    = bool(data.get('clear_existing', False))
+
+        if not username:
+            return jsonify({"error": "username is required"}), 400
+
+        set_watcher_username(username)
+
+        # First pull any new contract-note PDFs straight from Gmail, then scan
+        # the folder. Gmail problems (offline, auth) must not block a manual
+        # import of files already on disk, so this is best-effort.
+        gmail_note = None
+        try:
+            fetched = fetch_new_contract_notes()
+            if fetched:
+                gmail_note = f"fetched {len(fetched)} new contract note(s) from Gmail"
+        except Exception as gmail_exc:
+            gmail_note = f"Gmail fetch skipped: {gmail_exc}"
+            print(f"[gmail] fetch during import failed: {gmail_exc}")
+
+        results, total = scan_and_import_all(username, clear_existing=clear)
+        if gmail_note:
+            results.insert(0, gmail_note)
+
+        return jsonify({"total_imported": total, "results": results}), 200
+
+    except Exception as exc:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route('/import_status', methods=['POST'])
+def import_status():
+    """Return the list of already-processed contract note files."""
+    try:
+        return jsonify(get_processed_files()), 200
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+# Start the background file-watcher (imports new CCN files automatically) and
+# the Gmail poller (downloads new contract notes from e-mail into that folder).
+start_watcher()
+start_gmail_watcher()
+
 
 if __name__ == "__main__":
     app.run(debug = True)

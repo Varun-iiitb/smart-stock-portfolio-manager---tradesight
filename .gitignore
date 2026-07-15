@@ -250,9 +250,15 @@ target/
 # Local databases (contain user accounts and portfolios)
 *.db
 
-# Generated reports and charts
+# Generated output (reports, charts, images) — all regenerated at runtime
 report.xlsx
-backend/static/charts/
+analytics_charts/charts/
+analytics_charts/legacy-charts/
 
 # Code runner scratch file
 tempCodeRunnerFile.python
+
+# Gmail contract-note fetcher — OAuth secrets & local state (never commit)
+credentials.json
+token.json
+gmail_seen_ids.json

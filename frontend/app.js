@@ -427,8 +427,69 @@ async function calculateExchange() {
     }
 }
 
+// ==================== CONTRACT NOTE IMPORT ====================
+async function importContractNotes(clearExisting = false) {
+    const btn    = document.getElementById('btn-import-contract-notes');
+    const loader = btn.querySelector('.loader-inline');
+    const logCard = document.getElementById('import-log-card');
+    const logBody = document.getElementById('import-log-body');
+    const logCount = document.getElementById('import-log-count');
+
+    btn.disabled = true;
+    loader.classList.remove('hidden');
+    logCard.classList.remove('hidden');
+    logBody.innerHTML = '<div style="color:#3a86ff">Scanning contract notes folder…</div>';
+
+    try {
+        const resp = await fetch('/import_contract_notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: state.username, clear_existing: clearExisting })
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            logBody.innerHTML = `<div style="color:#ff006e">Error: ${data.error || 'Unknown error'}</div>`;
+            return;
+        }
+
+        const total   = data.total_imported || 0;
+        const results = data.results || [];
+
+        logCount.textContent = `${results.length} file(s) processed`;
+
+        logBody.innerHTML = results.map(line => {
+            const color = line.includes('error') || line.includes('not found')
+                ? '#ff006e'
+                : line.includes('already imported')
+                    ? '#9ca3af'
+                    : '#06d6a0';
+            return `<div style="color:${color}; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04)">${line}</div>`;
+        }).join('');
+
+        logBody.innerHTML += `<div style="color:#3a86ff; margin-top:8px; font-weight:600">
+            ✓ Total trades imported: ${total}
+        </div>`;
+
+        if (total > 0) {
+            await loadPortfolioHoldings();
+            loadDashboardMetrics();
+        }
+    } catch (err) {
+        logBody.innerHTML = `<div style="color:#ff006e">Connection error: ${err.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        loader.classList.add('hidden');
+    }
+}
+
 // ==================== PORTFOLIO TAB ====================
 function setupPortfolioListeners() {
+    document.getElementById('btn-import-contract-notes').addEventListener('click', () => {
+        importContractNotes(false);
+    });
+
     document.getElementById('btn-export-portfolio').addEventListener('click', () => {
         exportExcelReport('btn-export-portfolio');
     });
@@ -686,9 +747,9 @@ function setupAnalysisListeners() {
                 
                 document.getElementById('candlestick-chart-title').textContent = `Candlestick Chart for ${stockNameInput.value.trim()}`;
                 
-                document.getElementById('iframe-candlestick').src = `/static/charts/candlestick_chart.html?t=${timestamp}`;
-                document.getElementById('iframe-profitloss').src = `/static/charts/profit_loss.html?t=${timestamp}`;
-                document.getElementById('iframe-portfoliovalue').src = `/static/charts/portfolio_value.html?t=${timestamp}`;
+                document.getElementById('iframe-candlestick').src = `/charts/candlestick_chart.html?t=${timestamp}`;
+                document.getElementById('iframe-profitloss').src = `/charts/profit_loss.html?t=${timestamp}`;
+                document.getElementById('iframe-portfoliovalue').src = `/charts/portfolio_value.html?t=${timestamp}`;
                 
                 // Hide loaders after a 300ms micro-buffer to let iframes load smoothly
                 setTimeout(() => {
@@ -867,7 +928,7 @@ async function updateResearchChartDuration(durationCode, btnElement) {
         });
 
         if (response.ok) {
-            document.getElementById('iframe-research-live').src = `/static/charts/live_stock_prices.html?t=${Date.now()}`;
+            document.getElementById('iframe-research-live').src = `/charts/live_stock_prices.html?t=${Date.now()}`;
             setTimeout(() => {
                 skeleton.classList.add('hidden');
             }, 300);
@@ -901,7 +962,7 @@ async function triggerProphetForecast() {
             const data = await response.json();
             decisionText.textContent = data.message1 || 'Forecast complete.';
 
-            document.getElementById('iframe-research-predict').src = `/static/charts/prediction.html?t=${Date.now()}`;
+            document.getElementById('iframe-research-predict').src = `/charts/prediction.html?t=${Date.now()}`;
             setTimeout(() => {
                 skeleton.classList.add('hidden');
             }, 300);

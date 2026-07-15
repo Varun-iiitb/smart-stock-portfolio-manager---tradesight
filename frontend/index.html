@@ -259,6 +259,10 @@
                             <p class="panel-subtitle">Manage and track your active equity positions</p>
                         </div>
                         <div class="panel-actions">
+                            <button class="btn-accent glow-button" id="btn-import-contract-notes" title="Scan contract notes folder and import BUY trades automatically">
+                                <span>📂 Import Contract Notes</span>
+                                <div class="loader-inline hidden"></div>
+                            </button>
                             <button class="btn-accent glow-button" id="btn-export-portfolio">
                                 <span>📥 Export Excel Report</span>
                                 <div class="loader-inline hidden"></div>
@@ -300,6 +304,19 @@
                         </div>
                     </div>
                     
+                    <!-- Contract Note Import Log -->
+                    <div class="content-card glassmorphic full-width-card hidden" id="import-log-card">
+                        <div class="card-header">
+                            <div class="card-title-container">
+                                <span class="card-title-icon">📄</span>
+                                <h3>Contract Note Import Log</h3>
+                            </div>
+                            <span class="card-badge font-inter" id="import-log-count">0 files</span>
+                        </div>
+                        <div id="import-log-body" style="padding:12px 0; font-family:'Inter',monospace; font-size:13px; max-height:220px; overflow-y:auto; color:var(--text-secondary,#9ca3af);">
+                        </div>
+                    </div>
+
                     <!-- Add Stock Position Form -->
                     <div class="content-card glassmorphic form-card">
                         <div class="card-header">
